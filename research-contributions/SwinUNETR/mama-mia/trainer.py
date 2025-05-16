@@ -110,21 +110,26 @@ def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_sig
                 )
                 # Save prediction only at final epoch
             if epoch == args.max_epochs - 1:
-                affine = batch_data["image_meta_dict"]["original_affine"][0].numpy()
+                print(batch_data.keys())
+                image_meta = batch_data.get("image_meta_dict", None)
+                if image_meta is not None:
+                    affine = image_meta["original_affine"][0].numpy()
+                    path = image_meta["filename_or_obj"][0]
+                    basename = os.path.basename(path).replace(".nii.gz", "")
+                    patient_id = "_".join(basename.split("_")[:2])
 
-                # ✅ Retrieve patient ID from metadata
-                path = batch_data["image_meta_dict"]["filename_or_obj"][0]
-                patient_id = os.path.basename(path).split("_")[0]  # Assumes something like "DUKE_001_0000.nii.gz"
-                img_name = f"{patient_id}_pred.nii.gz"
-                print("Inference on case", img_name)
+                    img_name = f"{patient_id}_pred.nii.gz"
+                    print("Inference on case", img_name)
 
-                # ✅ Run model and post-process for binary mask
-                prob = torch.sigmoid(model_inferer_test(data))
-                pred_mask = prob[0, 0].detach().cpu().numpy()  # Assuming shape is [B, 1, H, W, D]
-                binary_mask = (pred_mask > 0.5).astype(np.uint8)
+                    # ✅ Run model and post-process for binary mask
+                    prob = torch.sigmoid(model_inferer_test(data))
+                    pred_mask = prob[0, 0].detach().cpu().numpy()  # Assuming shape is [B, 1, H, W, D]
+                    binary_mask = (pred_mask > 0.5).astype(np.uint8)
 
-                # ✅ Save the predicted binary mask
-                nib.save(nib.Nifti1Image(binary_mask, affine), os.path.join(output_directory, img_name))    
+                    # ✅ Save the predicted binary mask
+                    nib.save(nib.Nifti1Image(binary_mask, affine), os.path.join(output_directory, img_name))   
+                else:
+                    print("⚠️ Skipping prediction save: no image_meta_dict found for batch.") 
             start_time = time.time()
 
     return run_acc.avg

@@ -32,8 +32,8 @@ from monai.utils.enums import MetricReduction
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline for MAMA-MIA Challenge")
 parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint")
-parser.add_argument("--exp_name", default="test1", type=str, help="experiment name")
-parser.add_argument("--logdir", default="seg/exp-0", type=str, help="directory to save the tensorboard logs")
+parser.add_argument("--exp_name", default="test1-1", type=str, help="experiment name")
+parser.add_argument("--logdir", default="seg/exp-1", type=str, help="directory to save the tensorboard logs")
 parser.add_argument("--fold", default=0, type=int, help="data fold")
 parser.add_argument("--pretrained_model_name", default="model.pt", type=str, help="pretrained model name")
 parser.add_argument("--data_dir", default="/data/One_dataset/", type=str, help="dataset directory")
@@ -47,7 +47,7 @@ parser.add_argument("--optim_name", default="adamw", type=str, help="optimizatio
 parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
 parser.add_argument("--momentum", default=0.99, type=float, help="momentum")
 parser.add_argument("--noamp", action="store_true", help="do NOT use amp for training")
-parser.add_argument("--val_every", default=10, type=int, help="validation frequency")
+parser.add_argument("--val_every", default=5, type=int, help="validation frequency")
 parser.add_argument("--distributed", action="store_true", help="start distributed training")
 parser.add_argument("--world_size", default=1, type=int, help="number of nodes for distributed training")
 parser.add_argument("--rank", default=0, type=int, help="node rank for distributed training")
@@ -66,9 +66,9 @@ parser.add_argument("--b_max", default=1.0, type=float, help="b_max in ScaleInte
 parser.add_argument("--space_x", default=1.5, type=float, help="spacing in x direction")
 parser.add_argument("--space_y", default=1.5, type=float, help="spacing in y direction")
 parser.add_argument("--space_z", default=2.0, type=float, help="spacing in z direction")
-parser.add_argument("--roi_x", default=64, type=int, help="roi size in x direction")
-parser.add_argument("--roi_y", default=64, type=int, help="roi size in y direction")
-parser.add_argument("--roi_z", default=64, type=int, help="roi size in z direction")
+parser.add_argument("--roi_x", default=96, type=int, help="roi size in x direction")
+parser.add_argument("--roi_y", default=96, type=int, help="roi size in y direction")
+parser.add_argument("--roi_z", default=96, type=int, help="roi size in z direction")
 parser.add_argument("--dropout_rate", default=0.0, type=float, help="dropout rate")
 parser.add_argument("--dropout_path_rate", default=0.0, type=float, help="drop path rate")
 parser.add_argument("--RandFlipd_prob", default=0.2, type=float, help="RandFlipd aug probability")
@@ -85,12 +85,13 @@ parser.add_argument("--use_checkpoint", action="store_true", help="use gradient 
 parser.add_argument("--spatial_dims", default=3, type=int, help="spatial dimension of input data")
 parser.add_argument(
     "--pretrained_dir",
-    default="/results/swin/runs/seg/exp-0/fold_0/",
+    default="/results/swin/runs/seg/exp-1/fold_0/",
     type=str,
     help="pretrained checkpoint directory",
 )
 parser.add_argument("--squared_dice", action="store_true", help="use squared Dice")
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64,expandable_segments:True"
 
 def main():
     args = parser.parse_args()

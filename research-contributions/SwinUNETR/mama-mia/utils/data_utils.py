@@ -133,7 +133,7 @@ def get_loader(args):
     )
     val_transform = transforms.Compose(
         [
-            transforms.LoadImaged(keys=["image", "label"]),
+            transforms.LoadImaged(keys=["image", "label"], image_only=False),
             transforms.LambdaD(
                 keys="image",
                 func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
@@ -146,8 +146,12 @@ def get_loader(args):
 
     test_transform = transforms.Compose(
         [
-            transforms.LoadImaged(keys=["image", "label"]),
-            transforms.ConvertToMultiChannelBasedOnBratsClassesd(keys="label"),
+            transforms.LoadImaged(keys=["image", "label"], image_only=False),
+            transforms.LambdaD(
+                keys="image",
+                func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
+            ),
+            transforms.EnsureChannelFirstd(keys=["image", "label"]),
             transforms.NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
             transforms.ToTensord(keys=["image", "label"]),
         ]
