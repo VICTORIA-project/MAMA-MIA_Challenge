@@ -23,6 +23,7 @@ import torch.utils.data.distributed
 from tensorboardX import SummaryWriter
 from torch.cuda.amp import GradScaler, autocast
 from utils.utils import AverageMeter, distributed_all_gather
+import matplotlib.pyplot as plt
 
 from monai.data import decollate_batch
 
@@ -68,10 +69,11 @@ def train_epoch(model, loader, optimizer, scaler, epoch, loss_func, args):
     return run_loss.avg
 
 
-def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_sigmoid=None, post_pred=None):
+def val_epoch(model, loader, epoch, acc_func, loss_func, args, model_inferer=None, post_sigmoid=None, post_pred=None):
     model.eval()
     start_time = time.time()
     run_acc = AverageMeter()
+    run_loss = AverageMeter()
     
     output_directory = "/results/swin/runs/seg/" + args.exp_name
     if not os.path.exists(output_directory):
@@ -84,6 +86,7 @@ def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_sig
 
             with autocast(enabled=args.amp):
                 logits = model_inferer(data)
+                loss = loss_func(logits, target)
 
             val_labels_list = decollate_batch(target)
             val_outputs_list = decollate_batch(logits)
@@ -102,11 +105,13 @@ def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_sig
                     run_acc.update(al, n=nl)
             else:
                 run_acc.update(acc.cpu().numpy(), n=not_nans.cpu().numpy())
+                run_loss.update(loss.item(), n=args.batch_size)
 
             if args.rank == 0:
                 print(
                     f"Val {epoch}/{args.max_epochs} {idx}/{len(loader)}, Dice: {run_acc.avg:.4f}, "
-                    f"time {time.time() - start_time:.2f}s"
+                    f"time {time.time() - start_time:.2f}s",
+                    "loss: {:.4f}".format(run_loss.avg)
                 )
                 # Save prediction only at final epoch
             if epoch == args.max_epochs - 1:
@@ -122,7 +127,7 @@ def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_sig
                     print("Inference on case", img_name)
 
                     # ✅ Run model and post-process for binary mask
-                    prob = torch.sigmoid(model_inferer_test(data))
+                    prob = torch.sigmoid(model_inferer(data))
                     pred_mask = prob[0, 0].detach().cpu().numpy()  # Assuming shape is [B, 1, H, W, D]
                     binary_mask = (pred_mask > 0.5).astype(np.uint8)
 
@@ -132,7 +137,7 @@ def val_epoch(model, loader, epoch, acc_func, args, model_inferer=None, post_sig
                     print("⚠️ Skipping prediction save: no image_meta_dict found for batch.") 
             start_time = time.time()
 
-    return run_acc.avg
+    return run_acc.avg, run_loss.avg
 
 
 def save_checkpoint(model, epoch, args, filename="model.pt", best_acc=0, optimizer=None, scheduler=None):
@@ -170,6 +175,11 @@ def run_training(
     if args.amp:
         scaler = GradScaler()
     val_acc_max = 0.0
+    
+    train_loss_history = []
+    val_loss_history = []
+    val_dice_history = []
+    
     for epoch in range(start_epoch, args.max_epochs):
         if args.distributed:
             train_loader.sampler.set_epoch(epoch)
@@ -187,16 +197,24 @@ def run_training(
             )
         if args.rank == 0 and writer is not None:
             writer.add_scalar("train_loss", train_loss, epoch)
+            
+        train_loss_history.append(train_loss)
+        
+        val_loss_epoch = None
+        val_dice_epoch = None
+        
         b_new_best = False
         if (epoch + 1) % args.val_every == 0:
             if args.distributed:
                 torch.distributed.barrier()
             epoch_time = time.time()
-            val_acc = val_epoch(
+            
+            val_acc, val_loss = val_epoch(
                 model,
                 val_loader,
                 epoch=epoch,
                 acc_func=acc_func,
+                loss_func=loss_func,
                 model_inferer=model_inferer,
                 args=args,
                 post_sigmoid=post_sigmoid,
@@ -208,11 +226,14 @@ def run_training(
                     "Final validation stats {}/{}".format(epoch, args.max_epochs - 1),
                     ", Dice Score:",
                     val_acc,
+                    ", loss: {:.4f}".format(val_loss),
                     ", time {:.2f}s".format(time.time() - epoch_time),
                 )
 
                 if writer is not None:
                     writer.add_scalar("Val_Dice", val_acc, epoch)
+                    writer.add_scalar("Val_loss", val_loss, epoch)
+                    
                 val_avg_acc = val_acc
                 if val_avg_acc > val_acc_max:
                     print("new best ({:.6f} --> {:.6f}). ".format(val_acc_max, val_avg_acc))
@@ -222,14 +243,41 @@ def run_training(
                         save_checkpoint(
                             model, epoch, args, best_acc=val_acc_max, optimizer=optimizer, scheduler=scheduler
                         )
-            if args.rank == 0 and args.logdir is not None and args.save_checkpoint:
-                save_checkpoint(model, epoch, args, best_acc=val_acc_max, filename="model_final.pt")
-                if b_new_best:
-                    print("Copying to model.pt new best model!!!!")
-                    shutil.copyfile(os.path.join(args.logdir, "model_final.pt"), os.path.join(args.logdir, "model.pt"))
+                if args.rank == 0 and args.logdir is not None and args.save_checkpoint:
+                    save_checkpoint(model, epoch, args, best_acc=val_acc_max, filename="model_final.pt")
+                    if b_new_best:
+                        print("Copying to model.pt new best model!!!!")
+                        shutil.copyfile(os.path.join(args.logdir, "model_final.pt"), os.path.join(args.logdir, "model.pt"))
 
+            val_loss_epoch = val_loss
+            val_dice_epoch = val_acc
+        
+        val_loss_history.append(val_loss_epoch)
+        val_dice_history.append(val_dice_epoch)
+        
         if scheduler is not None:
             scheduler.step()
+            
+        # SAVE STATIC PNG PLOT AFTER EACH EPOCH
+        if args.rank == 0 and args.logdir is not None:
+            epochs = list(range(start_epoch, epoch + 1))
+            fig, ax1 = plt.subplots(figsize=(8, 6))
+
+            ax1.plot(epochs, train_loss_history, label='Training Loss', color='blue', marker='o')
+            ax1.plot(epochs, val_loss_history, label='Validation Loss', color='red', marker='o')
+            ax1.set_xlabel('Epoch')
+            ax1.set_ylabel('Loss')
+            ax1.legend(loc='upper left')
+
+            ax2 = ax1.twinx()
+            ax2.plot(epochs, val_dice_history, label='Validation Dice', color='green', marker='x')
+            ax2.set_ylabel('Validation Dice')
+            ax2.legend(loc='upper right')
+
+            plt.title('Training Progress')
+            plt.tight_layout()
+            plt.savefig(os.path.join(args.logdir, 'training_progress.png'))
+            plt.close()
 
     print("Training Finished !, Best Accuracy: ", val_acc_max)
 

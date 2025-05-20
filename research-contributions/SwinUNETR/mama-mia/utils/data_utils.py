@@ -94,26 +94,25 @@ def get_loader(args):
     datalist_json = args.json_list
     train_files, validation_files = datafold_read(datalist=datalist_json, basedir=data_dir)
     
-    # ✅ 1. Filter out training entries with missing image or label files
-    train_files = [
-        d for d in train_files
-        if all(os.path.exists(p) for p in d["image"]) and os.path.exists(d["label"])
-    ]
+    # # ✅ 1. Filter out training entries with missing image or label files
+    # train_files = [
+    #     d for d in train_files
+    #     if all(os.path.exists(p) for p in d["image"]) and os.path.exists(d["label"])
+    # ]
 
-    # ✅ 2. Filter out validation entries with missing image or label files
-    validation_files = [
-        d for d in validation_files
-        if all(os.path.exists(p) for p in d["image"]) and os.path.exists(d["label"])
-    ]
+    # # ✅ 2. Filter out validation entries with missing image or label files
+    # validation_files = [
+    #     d for d in validation_files
+    #     if all(os.path.exists(p) for p in d["image"]) and os.path.exists(d["label"])
+    # ]
 
     train_transform = transforms.Compose(
         [
             transforms.LoadImaged(keys=["image", "label"]),
-            
-            transforms.LambdaD(
-                keys="image",
-                func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
-            ),
+            # transforms.LambdaD(
+            #     keys="image",
+            #     func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
+            # ),
             transforms.EnsureChannelFirstd(keys=["image", "label"]),
 
             transforms.CropForegroundd(
@@ -134,10 +133,10 @@ def get_loader(args):
     val_transform = transforms.Compose(
         [
             transforms.LoadImaged(keys=["image", "label"], image_only=False),
-            transforms.LambdaD(
-                keys="image",
-                func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
-            ),
+            # transforms.LambdaD(
+            #     keys="image",
+            #     func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
+            # ),
             transforms.EnsureChannelFirstd(keys=["image", "label"]),
             transforms.NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
             transforms.ToTensord(keys=["image", "label"]),
@@ -147,10 +146,10 @@ def get_loader(args):
     test_transform = transforms.Compose(
         [
             transforms.LoadImaged(keys=["image", "label"], image_only=False),
-            transforms.LambdaD(
-                keys="image",
-                func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
-            ),
+            # transforms.LambdaD(
+            #     keys="image",
+            #     func=lambda x: (print(f"✅ Shape: {x.shape}") or x) if x is not None else (_ for _ in ()).throw(ValueError("❌ Image is None"))
+            # ),
             transforms.EnsureChannelFirstd(keys=["image", "label"]),
             transforms.NormalizeIntensityd(keys="image", nonzero=True, channel_wise=True),
             transforms.ToTensord(keys=["image", "label"]),
