@@ -1,3 +1,3 @@
 __pycache__/
 *.pth
-MAMA-MIA_Challenge/nnUNet/nnUNet_results/Dataset102_Breast/nnUNetTrainer__nnUNetPlans__3d_fullres/nnUNet_preprocessed/
+nnUNet/nnUNet_results/Dataset102_Breast/nnUNetTrainer__nnUNetPlans__3d_fullres/nnUNet_preprocessed/
