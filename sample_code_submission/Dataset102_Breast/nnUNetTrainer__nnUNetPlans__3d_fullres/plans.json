@@ -1,5 +1,5 @@
 {
-    "dataset_name": "Dataset105_full_image",
+    "dataset_name": "Dataset102_Breast",
     "plans_name": "nnUNetPlans",
     "original_median_spacing_after_transp": [
         1.0,
@@ -8,8 +8,8 @@
     ],
     "original_median_shape_after_transp": [
         159,
-        180,
-        180
+        200,
+        200
     ],
     "image_reader_writer": "SimpleITKIO",
     "transpose_forward": [
@@ -26,14 +26,14 @@
         "2d": {
             "data_identifier": "nnUNetPlans_2d",
             "preprocessor_name": "DefaultPreprocessor",
-            "batch_size": 88,
+            "batch_size": 65,
             "patch_size": [
-                192,
-                192
+                224,
+                224
             ],
             "median_image_size_in_voxels": [
-                180.0,
-                180.0
+                200.0,
+                200.0
             ],
             "spacing": [
                 1.0,
@@ -173,14 +173,14 @@
             "preprocessor_name": "DefaultPreprocessor",
             "batch_size": 2,
             "patch_size": [
-                128,
-                128,
+                112,
+                160,
                 128
             ],
             "median_image_size_in_voxels": [
                 159.0,
-                180.0,
-                180.0
+                200.0,
+                200.0
             ],
             "spacing": [
                 1.0,
@@ -286,7 +286,7 @@
                             2
                         ],
                         [
-                            2,
+                            1,
                             2,
                             2
                         ]
@@ -333,13 +333,13 @@
     "label_manager": "LabelManager",
     "foreground_intensity_properties_per_channel": {
         "0": {
-            "max": 388.55096435546875,
-            "mean": 25.448123931884766,
-            "median": 13.311951637268066,
-            "min": -95.55390930175781,
-            "percentile_00_5": -1.7434667348861694,
-            "percentile_99_5": 143.7422080993647,
-            "std": 29.76422882080078
+            "max": 25.216655731201172,
+            "mean": 3.367305278778076,
+            "median": 3.1414270401000977,
+            "min": -1.7601265907287598,
+            "percentile_00_5": 0.09741755176335574,
+            "percentile_99_5": 9.078390121459961,
+            "std": 1.716048002243042
         }
     }
 }
