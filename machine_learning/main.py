@@ -29,12 +29,7 @@ def extract_features(img_path, mask_path):
         return None
 
     # Intensity features
-    mean = roi.mean()
-    std = roi.std()
-    min_val = roi.min()
-    max_val = roi.max()
-    p25 = np.percentile(roi, 25)
-    p75 = np.percentile(roi, 75)
+
     volume_vox = np.sum(mask_array > 0)
 
     # Surface and shape features
@@ -52,14 +47,14 @@ def extract_features(img_path, mask_path):
     sphericity = (np.pi ** (1/3) * (6 * volume_vox) ** (2/3)) / max(1, surface_vox)
 
     return [
-        mean, std, min_val, max_val, p25, p75, volume_vox,
+        volume_vox,
         surface_vox, bbox_volume,
         elongation, compactness, sphericity
     ]
 
 
 feature_names = [
-    "mean", "std", "min", "max", "p25", "p75", "volume_vox",
+    "volume_vox",
     "surface_vox", "bbox_volume",
     "elongation", "compactness", "sphericity"
 ]
@@ -107,8 +102,8 @@ ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
     scale_pos_weight=ratio,
-    n_estimators=100,
-    max_depth=4,
+    n_estimators=500,
+    max_depth=5,
     use_label_encoder=False,
     eval_metric="logloss",
     max_delta_step=1
