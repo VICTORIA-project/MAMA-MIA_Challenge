@@ -9,6 +9,9 @@ import joblib
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, roc_auc_score, balanced_accuracy_score, roc_curve
+from scipy.ndimage import binary_erosion
+import pandas as pd
+
 
 # Load JSON
 with open("/home/hadeel/MAMA-MIA_Challenge/train_val_split_fold0_reformatted.json", "r") as f:
@@ -23,18 +26,45 @@ def extract_features(img_path, mask_path):
 
     roi = img_array[mask_array > 0]
     if roi.size == 0:
-        return None  # skip empty masks
+        return None
 
-    features = {
-        "mean": roi.mean(),
-        "std": roi.std(),
-        "min": roi.min(),
-        "max": roi.max(),
-        "percentile_25": np.percentile(roi, 25),
-        "percentile_75": np.percentile(roi, 75),
-        "volume_voxels": np.sum(mask_array > 0),
-    }
-    return list(features.values())
+    # Intensity features
+    mean = roi.mean()
+    std = roi.std()
+    min_val = roi.min()
+    max_val = roi.max()
+    p25 = np.percentile(roi, 25)
+    p75 = np.percentile(roi, 75)
+    volume_vox = np.sum(mask_array > 0)
+
+    # Surface and shape features
+    eroded = binary_erosion(mask_array)
+    surface_vox = np.sum(mask_array != eroded)
+
+    coords = np.argwhere(mask_array)
+    bbox_min = coords.min(axis=0)
+    bbox_max = coords.max(axis=0)
+    bbox_dims = bbox_max - bbox_min + 1
+    bbox_volume = np.prod(bbox_dims)
+
+    elongation = bbox_dims.max() / max(1, bbox_dims.min())
+    compactness = (volume_vox ** 2) / max(1, surface_vox ** 3)
+    sphericity = (np.pi ** (1/3) * (6 * volume_vox) ** (2/3)) / max(1, surface_vox)
+
+    return [
+        mean, std, min_val, max_val, p25, p75, volume_vox,
+        surface_vox, bbox_volume,
+        elongation, compactness, sphericity
+    ]
+
+
+feature_names = [
+    "mean", "std", "min", "max", "p25", "p75", "volume_vox",
+    "surface_vox", "bbox_volume",
+    "elongation", "compactness", "sphericity"
+]
+
+
 
 def load_data(entries):
     X, y, ids = [], [], []
@@ -61,6 +91,8 @@ val_entries = data["fold_0"]["val"]
 # === Extract features ===
 print("Extracting training features...")
 X_train, y_train, ids_train = load_data(train_entries)
+
+pd.DataFrame(X_train, columns=feature_names).to_csv("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/train_features.csv", index=False)
 
 print("Extracting validation features...")
 X_val, y_val, ids_val = load_data(val_entries)
@@ -134,7 +166,7 @@ plt.show()
 print("📈 ROC curve saved as roc_curve_validation.png")
 
 # === Save predictions ===
-import pandas as pd
+
 df_preds = pd.DataFrame({
     "patient_id": ids_val,
     "true_label": y_val,
