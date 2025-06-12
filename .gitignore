@@ -1,3 +1,5 @@
 __pycache__/
 *.pth
-nnUNet/nnUNet_results/Dataset102_Breast/nnUNetTrainer__nnUNetPlans__3d_fullres/nnUNet_preprocessed/
+*.nii.gz
+nnUNet/
+research-contributions/SwinUNETR/mama-mia/output/
