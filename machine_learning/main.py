@@ -101,12 +101,13 @@ X_val_scaled = scaler.transform(X_val)
 ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
-    scale_pos_weight=ratio,
+    scale_pos_weight=1,
     n_estimators=500,
     max_depth=5,
     use_label_encoder=False,
     eval_metric="logloss",
-    max_delta_step=1
+    max_delta_step=1,
+    device='cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu',
 )
 model.fit(X_train_scaled, y_train)
 
