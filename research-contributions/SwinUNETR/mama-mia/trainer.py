@@ -29,6 +29,7 @@ from monai.data import decollate_batch
 
 
 def train_epoch(model, loader, optimizer, scaler, epoch, loss_func, args):
+    device = torch.device(f"cuda:{args.gpu}")
     model.train()
     start_time = time.time()
     run_loss = AverageMeter()
@@ -37,7 +38,7 @@ def train_epoch(model, loader, optimizer, scaler, epoch, loss_func, args):
             data, target = batch_data
         else:
             data, target = batch_data["image"], batch_data["label"]
-        data, target = data.cuda(args.rank), target.cuda(args.rank)
+        data, target = data.to(device), target.to(device)
         for param in model.parameters():
             param.grad = None
         with autocast(enabled=args.amp):
@@ -70,19 +71,20 @@ def train_epoch(model, loader, optimizer, scaler, epoch, loss_func, args):
 
 
 def val_epoch(model, loader, epoch, acc_func, loss_func, args, model_inferer=None, post_sigmoid=None, post_pred=None):
+    device = torch.device(f"cuda:{args.gpu}")
     model.eval()
     start_time = time.time()
     run_acc = AverageMeter()
     run_loss = AverageMeter()
     
-    output_directory = "/results/swin/runs/seg/" + args.exp_name
+    output_directory = "/home/hadeel/MAMA-MIA_Challenge/research-contributions/SwinUNETR/mama-mia/outputs/exp-2/" + args.exp_name
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
     with torch.no_grad():
         for idx, batch_data in enumerate(loader):
             data, target = batch_data["image"], batch_data["label"]
-            data, target = data.cuda(args.rank), target.cuda(args.rank)
+            data, target = data.to(device), target.to(device)
 
             with autocast(enabled=args.amp):
                 logits = model_inferer(data)
@@ -95,7 +97,7 @@ def val_epoch(model, loader, epoch, acc_func, loss_func, args, model_inferer=Non
             acc_func.reset()
             acc_func(y_pred=val_output_convert, y=val_labels_list)
             acc, not_nans = acc_func.aggregate()
-            acc = acc.cuda(args.rank)
+            acc = acc.to(device)
 
             if args.distributed:
                 acc_list, not_nans_list = distributed_all_gather(

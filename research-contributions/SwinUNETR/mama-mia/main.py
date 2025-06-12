@@ -35,12 +35,12 @@ from monai.utils.enums import MetricReduction
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline for MAMA-MIA Challenge")
 parser.add_argument("--checkpoint", default=None, help="start training from saved checkpoint")
-parser.add_argument("--exp_name", default="test2", type=str, help="experiment name")
-parser.add_argument("--logdir", default="seg/exp-2", type=str, help="directory to save the tensorboard logs")
+parser.add_argument("--exp_name", default="validation", type=str, help="experiment name")
+parser.add_argument("--logdir", default="exp-2", type=str, help="directory to save the tensorboard logs")
 parser.add_argument("--fold", default=0, type=int, help="data fold")
 parser.add_argument("--pretrained_model_name", default="model.pt", type=str, help="pretrained model name")
-parser.add_argument("--data_dir", default="/data/Breast_dataset/", type=str, help="dataset directory")
-parser.add_argument("--json_list", default="/home/hadeel/MAMA-MIA_Challenge/research-contributions/SwinUNETR/mama-mia/jsons/data_split.json", type=str, help="dataset json file")
+parser.add_argument("--data_dir", default="/home/hadeel/Breast_dataset/", type=str, help="dataset directory")
+parser.add_argument("--json_list", default="/home/hadeel/MAMA-MIA_Challenge/research-contributions/SwinUNETR/mama-mia/jsons/data_split-copy.json", type=str, help="dataset json file")
 parser.add_argument("--save_checkpoint", action="store_true", help="save checkpoint during training")
 parser.add_argument("--max_epochs", default=1000, type=int, help="max number of training epochs")
 parser.add_argument("--batch_size", default=1, type=int, help="number of batch size")
@@ -50,7 +50,7 @@ parser.add_argument("--optim_name", default="adamw", type=str, help="optimizatio
 parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
 parser.add_argument("--momentum", default=0.99, type=float, help="momentum")
 parser.add_argument("--noamp", action="store_true", help="do NOT use amp for training")
-parser.add_argument("--val_every", default=1, type=int, help="validation frequency")
+parser.add_argument("--val_every", default=50, type=int, help="validation frequency")
 parser.add_argument("--distributed", action="store_true", help="start distributed training")
 parser.add_argument("--world_size", default=1, type=int, help="number of nodes for distributed training")
 parser.add_argument("--rank", default=0, type=int, help="node rank for distributed training")
@@ -98,14 +98,14 @@ parser.add_argument("--squared_dice", action="store_true", help="use squared Dic
 def main():
     args = parser.parse_args()
     args.amp = not args.noamp
-    args.logdir = "/results/swin/runs/" + args.logdir + "/fold_" + f"{args.fold}"
+    args.logdir = "/home/hadeel/MAMA-MIA_Challenge/research-contributions/SwinUNETR/mama-mia/outputs/" + args.logdir + "/fold_" + f"{args.fold}"
     if args.distributed:
         args.ngpus_per_node = torch.cuda.device_count()
         print("Found total gpus", args.ngpus_per_node)
         args.world_size = args.ngpus_per_node * args.world_size
         mp.spawn(main_worker, nprocs=args.ngpus_per_node, args=(args,))
     else:
-        main_worker(gpu=0, args=args)
+        main_worker(gpu=1, args=args)
 
 def main_worker(gpu, args):
     if args.distributed:
@@ -118,6 +118,9 @@ def main_worker(gpu, args):
             backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank
         )
     torch.cuda.set_device(args.gpu)
+    device = torch.device(f"cuda:{args.gpu}") # if torch.cuda.is_available() else "cpu")
+    
+
     torch.backends.cudnn.benchmark = True
     args.test_mode = False
     loader = get_loader(args)
@@ -136,6 +139,11 @@ def main_worker(gpu, args):
         feature_size=args.feature_size,
         use_checkpoint=args.use_checkpoint,
     )
+
+    model = model.to(device)
+    
+    print("Model device:", next(model.parameters()).device)
+
 
     if args.resume_ckpt:
         model_dict = torch.load(pretrained_pth)["state_dict"]
@@ -186,13 +194,13 @@ def main_worker(gpu, args):
         print(f"Resumed from epoch {start_epoch}, best acc = {best_acc:.4f}")
 
 
-    model.cuda(args.gpu)
+    model = model.to(device)
 
     if args.distributed:
         torch.cuda.set_device(args.gpu)
         if args.norm_name == "batch":
             model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        model.cuda(args.gpu)
+        model.to(device)
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], output_device=args.gpu)
     if args.optim_name == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=args.optim_lr, weight_decay=args.reg_weight)
@@ -215,6 +223,8 @@ def main_worker(gpu, args):
             scheduler.step(epoch=start_epoch)
     else:
         scheduler = None
+
+    print("🚀 Launching run_training...")
 
     accuracy = run_training(
         model=model,
