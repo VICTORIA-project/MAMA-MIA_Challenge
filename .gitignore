@@ -2,4 +2,6 @@ __pycache__/
 *.pth
 *.nii.gz
 nnUNet/
-research-contributions/SwinUNETR/mama-mia/output/
+*.pt
+*.png
+research-contributions/SwinUNETR/mama-mia/outputs
