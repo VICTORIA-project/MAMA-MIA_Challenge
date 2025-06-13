@@ -4,14 +4,14 @@ import numpy as np
 import SimpleITK as sitk
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, plot_importance
 import joblib
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, roc_auc_score, balanced_accuracy_score, roc_curve
 from scipy.ndimage import binary_erosion
 import pandas as pd
-
+import shap
 
 # Load JSON
 with open("/home/hadeel/MAMA-MIA_Challenge/train_val_split_fold0_reformatted.json", "r") as f:
@@ -101,15 +101,40 @@ X_val_scaled = scaler.transform(X_val)
 ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
-    scale_pos_weight=1,
-    n_estimators=500,
-    max_depth=5,
+    scale_pos_weight=ratio,
+    n_estimators=100,
+    max_depth=4,
     use_label_encoder=False,
-    eval_metric="logloss",
+    eval_metric='logloss', 
     max_delta_step=1,
-    device='cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu',
+    # device='cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu',
 )
-model.fit(X_train_scaled, y_train)
+X_train_df = pd.DataFrame(X_train_scaled, columns=feature_names)
+X_val_df = pd.DataFrame(X_val_scaled, columns=feature_names)
+
+model.fit(X_train_df, y_train)
+
+# Plot top N features (you can adjust `max_num_features`)
+plt.figure(figsize=(8, 6))
+plot_importance(model, importance_type='gain', max_num_features=12, xlabel="Gain")
+plt.title("XGBoost Feature Importance (Gain)")
+plt.tight_layout()
+plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/feature_importance_gain.png")
+plt.show()
+
+explainer = shap.Explainer(model, X_train_df)
+shap_values = explainer(X_val_df)
+
+# === Global Summary Plot ===
+shap.plots.beeswarm(shap_values, max_display=12)  # top 12 features
+plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/shap_beeswarm.png")
+plt.show()
+
+# === Bar Plot of Mean SHAP Values ===
+shap.plots.bar(shap_values, max_display=12)
+plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/shap_bar.png")
+plt.show()
+
 
 # === Save model and scaler ===
 joblib.dump(model, "/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/xgb_pcr_model.pkl")
