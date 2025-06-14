@@ -29,7 +29,13 @@ def extract_features(img_path, mask_path):
         return None
 
     # Intensity features
-
+    # mean = roi.mean()
+    # std = roi.std()
+    # min_val = roi.min()
+    # max_val = roi.max()
+    # p25 = np.percentile(roi, 25)
+    # p75 = np.percentile(roi, 75)
+    
     volume_vox = np.sum(mask_array > 0)
 
     # Surface and shape features
@@ -42,21 +48,28 @@ def extract_features(img_path, mask_path):
     bbox_dims = bbox_max - bbox_min + 1
     bbox_volume = np.prod(bbox_dims)
 
-    elongation = bbox_dims.max() / max(1, bbox_dims.min())
+    # elongation = bbox_dims.max() / max(1, bbox_dims.min())
     compactness = (volume_vox ** 2) / max(1, surface_vox ** 3)
-    sphericity = (np.pi ** (1/3) * (6 * volume_vox) ** (2/3)) / max(1, surface_vox)
+    # sphericity = (np.pi ** (1/3) * (6 * volume_vox) ** (2/3)) / max(1, surface_vox)
 
     return [
+        #mean, std, min_val, max_val, p25, p75,
         volume_vox,
-        surface_vox, bbox_volume,
-        elongation, compactness, sphericity
+        surface_vox, 
+        bbox_volume,
+        #elongation# ,
+        compactness#, sphericity
     ]
 
 
 feature_names = [
+    #"mean", "std", "min_val", "max_val", "p25", "p75", 
     "volume_vox",
-    "surface_vox", "bbox_volume",
-    "elongation", "compactness", "sphericity"
+    "surface_vox", 
+    "bbox_volume",
+    # "elongation", 
+    "compactness"#,
+    # "sphericity"
 ]
 
 
@@ -102,11 +115,11 @@ ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
     scale_pos_weight=ratio,
-    n_estimators=100,
-    max_depth=4,
+    n_estimators=500,
+    max_depth=5,
     use_label_encoder=False,
     eval_metric='logloss', 
-    max_delta_step=1,
+    max_delta_step=0,
     # device='cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu',
 )
 X_train_df = pd.DataFrame(X_train_scaled, columns=feature_names)
