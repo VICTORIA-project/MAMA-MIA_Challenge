@@ -18,7 +18,7 @@ def extract_features(img_path, mask_path):
     mask = sitk.ReadImage(mask_path)
     img_array = sitk.GetArrayFromImage(img)
     mask_array = sitk.GetArrayFromImage(mask)
-    
+
     # If the predicted mask is empty → segmentation_failed
     if np.sum(mask_array > 0) == 0:
         return {

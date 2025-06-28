@@ -6,9 +6,9 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from src.preprocessing import *
 
 # Define the dataset paths and folders
-dataset_path = '/data/MAMA-MIA'
-input_folder = dataset_path + '/segmentations/expert'
-output_folder = os.path.join(dataset_path, 'processed_segmentations')
+dataset_path = '/data/nnUNet/Cropped'
+input_folder = dataset_path + '/final_masks'
+output_folder = os.path.join(dataset_path, 'processed_cropped/segmentation')
 
 # Create output directory if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)

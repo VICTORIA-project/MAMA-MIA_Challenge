@@ -23,12 +23,12 @@ def extract_features(img_path, mask_path):
     if roi.size == 0:
         return None
 
-    mean = roi.mean()
-    std = roi.std()
-    min_val = roi.min()
-    max_val = roi.max()
-    p25 = np.percentile(roi, 25)
-    p75 = np.percentile(roi, 75)
+    # mean = roi.mean()
+    # std = roi.std()
+    # min_val = roi.min()
+    # max_val = roi.max()
+    # p25 = np.percentile(roi, 25)
+    # p75 = np.percentile(roi, 75)
     volume_vox = np.sum(mask_array > 0)
 
     eroded = binary_erosion(mask_array)
@@ -45,14 +45,16 @@ def extract_features(img_path, mask_path):
     sphericity = (np.pi ** (1 / 3) * (6 * volume_vox) ** (2 / 3)) / max(1, surface_vox)
 
     return [
-        mean, std, min_val, max_val, p25, p75, volume_vox,
-        surface_vox, bbox_volume,
+        # mean, std, min_val, max_val, p25, p75, 
+        volume_vox,
+        surface_vox, 
+        bbox_volume,
         elongation, compactness, sphericity
     ]
 
 # === Load model and scaler ===
-model = joblib.load("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-1/xgb_voxel_model.pkl")
-scaler = joblib.load("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-1/scaler.pkl")
+model = joblib.load("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-4/xgb_pcr_model.pkl")
+scaler = joblib.load("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-4/scaler.pkl")
 
 # === Load validation set ===
 with open("train_val_split_fold0_reformatted.json", "r") as f:
@@ -114,7 +116,7 @@ plt.ylabel("True Positive Rate")
 plt.title("ROC Curve – Validation Set")
 plt.legend()
 plt.tight_layout()
-plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-1/roc_curve_reproduced.png")
+# plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-1/roc_curve_reproduced.png")
 plt.show()
 
 # === Save predictions
@@ -124,5 +126,5 @@ df = pd.DataFrame({
     "pred_label": y_pred,
     "prob_class_1": y_prob
 })
-df.to_csv("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-1/validation_predictions_reproduced.csv", index=False)
-print("✅ Saved predictions to validation_predictions_reproduced.csv")
+# df.to_csv("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/exp-1/validation_predictions_reproduced.csv", index=False)
+# print("✅ Saved predictions to validation_predictions_reproduced.csv")

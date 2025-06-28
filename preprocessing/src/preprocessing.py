@@ -134,6 +134,25 @@ def compute_patient_statistics(images_folder, patient_id):
 
     return mean, std
 
+def compute_precontrast_statistics(images_folder, patient_id):
+    """
+    Compute mean and standard deviation from only the pre-contrast (phase 0000) image.
+    """
+    file_name = f"{patient_id}_0000.nii.gz"
+    file_path = os.path.join(images_folder, patient_id, file_name)
+
+    if not os.path.exists(file_path):
+        print(f"Warning: Pre-contrast image not found for {patient_id}")
+        return None, None
+
+    image_sitk = sitk.ReadImage(file_path)
+    array = sitk.GetArrayFromImage(image_sitk)
+
+    mean = np.mean(array)
+    std = np.std(array)
+
+    return mean, std
+
 def zscore_normalization_sitk(image_sitk, mean, std):
     # Z-score normalization
     array = sitk.GetArrayFromImage(image_sitk) 

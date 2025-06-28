@@ -19,21 +19,6 @@ from radiomics import featureextractor
 import pandas as pd
 import shap
 
-def percentile_mask(image_sitk, lower_percentile=10):
-    array = sitk.GetArrayFromImage(image_sitk)
-    threshold = np.percentile(array, lower_percentile)
-    mask_array = (array > threshold).astype(np.uint8)
-
-    return mask_array
-
-def normalize_nonzero(image_np):
-    nonzero = image_np[image_np != 0]
-    if nonzero.size == 0:
-        return image_np
-    mean = np.mean(nonzero)
-    std = np.std(nonzero)
-    return (image_np - mean) / std
-
 # --- 1. Feature extraction returns a dict (no NaNs) ---
 def extract_features(img_path, mask_path):
     img = sitk.ReadImage(img_path)
@@ -41,29 +26,16 @@ def extract_features(img_path, mask_path):
     img_array = sitk.GetArrayFromImage(img)
     mask_array = sitk.GetArrayFromImage(mask)
 
-    clipped_np = np.clip(img_array, np.percentile(img_array, 0.5), np.percentile(img_array, 99.5))
-    cropped_np = normalize_nonzero(clipped_np)
-
     # If the predicted mask is empty → segmentation_failed
     if np.sum(mask_array > 0) == 0:
-        binary_mask_array = percentile_mask(sitk.GetImageFromArray(cropped_np), lower_percentile=60)
-        roi = cropped_np[binary_mask_array.astype(bool)]
         return {
-            "mean": roi.mean(),
-            "std": roi.std(),
-            # "min": roi.min(),
-            # "max": roi.max(),
-            "percentile_25": np.percentile(roi, 25),
-            "percentile_75": np.percentile(roi, 75), 
-            "volume_vox": 0,
-            "surface_vox": 0,
-            "bbox_volume": 0,
-            "compactness": 0,   # set 0 instead of NaN
-            "extent": 0,        # set 0 instead of NaN
+            "volume_vox":       0,
+            "surface_vox":      0,
+            "bbox_volume":      0,
+            "compactness":      0,   # set 0 instead of NaN
+            "extent":           0,   # set 0 instead of NaN
             "segmentation_failed": 1
         }
-        
-    roi = cropped_np[mask_array.astype(bool)]
 
     # Otherwise compute your shape features
     volume_vox = np.sum(mask_array > 0)
@@ -80,12 +52,6 @@ def extract_features(img_path, mask_path):
     extent      = volume_vox / max(1, bbox_volume)
 
     return {
-    "mean": roi.mean(),
-    "std": roi.std(),
-    # "min": roi.min(),
-    # "max": roi.max(),
-    "percentile_25": np.percentile(roi, 25),
-    "percentile_75": np.percentile(roi, 75),
     "volume_vox": volume_vox,
     "surface_vox": surface_vox,
     "bbox_volume": bbox_volume,
@@ -96,12 +62,6 @@ def extract_features(img_path, mask_path):
 
 
 feature_names = [
-    "mean",
-    "std",
-    # "min",
-    # "max",
-    "percentile_25",
-    "percentile_75",
     "volume_vox",
     "surface_vox",
     "bbox_volume",
@@ -110,12 +70,6 @@ feature_names = [
     "segmentation_failed"
 ]
 numeric_cols = [
-    "mean",
-    "std",
-    # "min",
-    # "max",
-    "percentile_25",
-    "percentile_75",
     "volume_vox",
     "surface_vox",
     "bbox_volume",
