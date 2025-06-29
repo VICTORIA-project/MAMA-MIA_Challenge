@@ -119,12 +119,12 @@ pd.DataFrame(X_train_scaled, columns=feature_names).to_csv("/home/hadeel/MAMA-MI
 ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
-    scale_pos_weight=ratio,
+    scale_pos_weight=1,
     n_estimators=500,
     max_depth=5,
     use_label_encoder=False,
     eval_metric='auc', 
-    max_delta_step=0,
+    max_delta_step=1,
     # device='cuda' if os.environ.get('CUDA_VISIBLE_DEVICES') else 'cpu',
 )
 # model = XGBRFClassifier(n_estimators=500, subsample=0.8, colsample_bynode=0.8, random_state=42, scale_pos_weight=ratio, max_depth=5)

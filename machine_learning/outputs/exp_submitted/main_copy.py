@@ -132,12 +132,12 @@ pd.DataFrame(X_train_df, columns=feature_names).to_csv("/home/hadeel/MAMA-MIA_Ch
 ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
-    scale_pos_weight=ratio,
+    scale_pos_weight=1,
     n_estimators=500,
     max_depth=5,
     use_label_encoder=False,
     eval_metric='auc', 
-    max_delta_step=0
+    max_delta_step=1
 )
 
 model.fit(X_train_df, y_train)

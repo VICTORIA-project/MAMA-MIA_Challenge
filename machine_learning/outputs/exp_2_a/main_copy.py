@@ -19,21 +19,6 @@ from radiomics import featureextractor
 import pandas as pd
 import shap
 
-def percentile_mask(image_sitk, lower_percentile=10):
-    array = sitk.GetArrayFromImage(image_sitk)
-    threshold = np.percentile(array, lower_percentile)
-    mask_array = (array > threshold).astype(np.uint8)
-
-    return mask_array
-
-def normalize_nonzero(image_np):
-    nonzero = image_np[image_np != 0]
-    if nonzero.size == 0:
-        return image_np
-    mean = np.mean(nonzero)
-    std = np.std(nonzero)
-    return (image_np - mean) / std
-
 # --- 1. Feature extraction returns a dict (no NaNs) ---
 def extract_features(img_path, mask_path):
     img = sitk.ReadImage(img_path)
@@ -41,29 +26,16 @@ def extract_features(img_path, mask_path):
     img_array = sitk.GetArrayFromImage(img)
     mask_array = sitk.GetArrayFromImage(mask)
 
-    clipped_np = np.clip(img_array, np.percentile(img_array, 0.5), np.percentile(img_array, 99.5))
-    cropped_np = normalize_nonzero(clipped_np)
-
     # If the predicted mask is empty → segmentation_failed
     if np.sum(mask_array > 0) == 0:
-        binary_mask_array = percentile_mask(sitk.GetImageFromArray(cropped_np), lower_percentile=60)
-        roi = cropped_np[binary_mask_array.astype(bool)]
         return {
-            "mean": roi.mean(),
-            "std": roi.std(),
-            "min": roi.min(),
-            "max": roi.max(),
-            "percentile_25": np.percentile(roi, 25),
-            "percentile_75": np.percentile(roi, 75), 
-            "volume_vox": 0,
-            "surface_vox": 0,
-            "bbox_volume": 0,
-            "compactness": 0,   # set 0 instead of NaN
-            "extent": 0,        # set 0 instead of NaN
+            "volume_vox":       0,
+            "surface_vox":      0,
+            "bbox_volume":      0,
+            "compactness":      0,   # set 0 instead of NaN
+            "extent":           0,   # set 0 instead of NaN
             "segmentation_failed": 1
         }
-        
-    roi = cropped_np[mask_array.astype(bool)]
 
     # Otherwise compute your shape features
     volume_vox = np.sum(mask_array > 0)
@@ -80,12 +52,6 @@ def extract_features(img_path, mask_path):
     extent      = volume_vox / max(1, bbox_volume)
 
     return {
-    "mean": roi.mean(),
-    "std": roi.std(),
-    "min": roi.min(),
-    "max": roi.max(),
-    "percentile_25": np.percentile(roi, 25),
-    "percentile_75": np.percentile(roi, 75),
     "volume_vox": volume_vox,
     "surface_vox": surface_vox,
     "bbox_volume": bbox_volume,
@@ -96,36 +62,24 @@ def extract_features(img_path, mask_path):
 
 
 feature_names = [
-    "mean",
-    "std",
-    "min",
-    "max",
-    "percentile_25",
-    "percentile_75",
     "volume_vox",
     "surface_vox",
     "bbox_volume",
     "compactness",
     "extent",
-    "segmentation_failed"
+    "segmentation_failed",
 ]
+categorical_cols = ["menopausal_status", "breast_density"]
+
+age_col = ["age"]
+
 numeric_cols = [
-    "mean",
-    "std",
-    "min",
-    "max",
-    "percentile_25",
-    "percentile_75",
     "volume_vox",
     "surface_vox",
     "bbox_volume",
     "compactness",
     "extent"
 ]
-
-categorical_cols = ["menopausal_status", "breast_density"]
-
-age_col = ["age"]
 
 
 def load_data(entries):
@@ -251,20 +205,25 @@ X_val_df = X_val_full
 X_train_df = X_train_df.drop(columns=["patient_id"], errors="ignore")
 X_val_df   = X_val_df.drop(columns=["patient_id"], errors="ignore")
 
+X_train_df.columns = X_train_df.columns.astype(str).str.replace('[', '(', regex=False).str.replace(']', ')', regex=False)
+X_val_df.columns = X_val_df.columns.astype(str).str.replace('[', '(', regex=False).str.replace(']', ')', regex=False)
+X_train_df.columns = X_train_df.columns.str.replace('<', '(', regex=False).str.replace('>', ')', regex=False)
+X_val_df.columns = X_val_df.columns.str.replace('<', '(', regex=False).str.replace('>', ')', regex=False)
+
 
 X_train_df.to_csv("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/train_features.csv", index=False)
 X_val_df.to_csv("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/validation_features.csv", index=False)
+
 
 # === Train XGBoost ===
 ratio = sum(y_train == 0) / sum(y_train == 1)
 model = XGBClassifier(
     objective="binary:logistic",
-    scale_pos_weight=1,
+    scale_pos_weight=ratio,
     n_estimators=500,
     max_depth=5,
-    use_label_encoder=False,
     eval_metric='auc', 
-    max_delta_step=1,
+    max_delta_step=0,
     tree_method='hist', enable_categorical=False
 )
 
@@ -278,18 +237,23 @@ plt.tight_layout()
 plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/feature_importance_gain.png")
 plt.show()
 
-# explainer = shap.Explainer(model, X_train_df)
-# shap_values = explainer(X_val_df)
+X_train_df_numeric = X_train_df.copy()
+X_train_df_numeric = X_train_df_numeric.astype(float)
+X_val_df_numeric = X_val_df.copy()
+X_val_df_numeric = X_val_df_numeric.astype(float)
 
-# # === Global Summary Plot ===
-# shap.plots.beeswarm(shap_values, max_display=12)  # top 12 features
-# plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/shap_beeswarm.png")
-# plt.show()
+explainer = shap.Explainer(model, X_train_df_numeric)
+shap_values = explainer(X_val_df_numeric)
 
-# # === Bar Plot of Mean SHAP Values ===
-# shap.plots.bar(shap_values, max_display=12)
-# plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/shap_bar.png")
-# plt.show()
+# === Global Summary Plot ===
+shap.plots.beeswarm(shap_values, max_display=12)  # top 12 features
+plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/shap_beeswarm.png")
+plt.show()
+
+# === Bar Plot of Mean SHAP Values ===
+shap.plots.bar(shap_values, max_display=12)
+plt.savefig("/home/hadeel/MAMA-MIA_Challenge/machine_learning/outputs/shap_bar.png")
+plt.show()
 
 
 # === Save model and scaler ===
