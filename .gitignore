@@ -1,7 +1,6 @@
 __pycache__/
 *.pth
 *.nii.gz
-nnUNet/
 *.pt
 *.png
 research-contributions/SwinUNETR/mama-mia/outputs
