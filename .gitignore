@@ -1,2 +1,13 @@
 __pycache__/
 *.pth
+*.nii.gz
+nnUNet/
+*.pt
+*.png
+research-contributions/SwinUNETR/mama-mia/outputs
+*.json
+*.csv
+*.pkl
+*.txt
+*.zip
+*.DS_Store
