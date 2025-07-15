@@ -9,7 +9,7 @@ import logging
 # Suppress non-critical logs
 radiomics.logger.setLevel(logging.ERROR)
 
-from xgboost import XGBClassifier, plot_importance, XGBRFClassifier
+from xgboost import XGBClassifier, plot_importance
 import joblib
 
 import matplotlib.pyplot as plt
@@ -25,9 +25,9 @@ import shap
 ##################################################
 
 # Paths
-features_csv = "/home/hadeel/MAMA-MIA_Challenge/machine_learning/5_folds/all_features.csv"  # Replace with your full path
-folds_json = "/home/hadeel/MAMA-MIA_Challenge/machine_learning/5_folds/5fold_split_stratified_updated.json"
-output_model_dir = "/home/hadeel/MAMA-MIA_Challenge/machine_learning/5_folds/"
+features_csv = "MAMA-MIA_Challenge/machine_learning/5_folds/all_features.csv"  # Replace with your full path
+folds_json = "MAMA-MIA_Challenge/machine_learning/5_folds/5fold_split_stratified_updated.json"
+output_model_dir = "MAMA-MIA_Challenge/machine_learning/5_folds/"
 
 # Load features
 features_df = pd.read_csv(features_csv)
@@ -84,5 +84,5 @@ for fold_name, fold_data in folds.items():
         "prob_class_1": y_prob
     })
     
-    df_preds.to_csv(f"/home/hadeel/MAMA-MIA_Challenge/machine_learning/5_folds/validation_predictions_{fold_name}.csv", index=False)
+    df_preds.to_csv(f"MAMA-MIA_Challenge/machine_learning/5_folds/validation_predictions_{fold_name}.csv", index=False)
     print("📁 Predictions saved to validation_predictions.csv")
