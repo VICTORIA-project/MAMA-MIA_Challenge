@@ -5,12 +5,35 @@ This repository contains the code for our final submission to the **MAMA-MIA Cha
 1. **Primary Tumor Segmentation** in dynamic contrast-enhanced MRI (DCE-MRI) scans  
 2. **Treatment Response Prediction**, specifically predicting pathologic complete response (pCR) to neoadjuvant chemotherapy from the MRI data  
 
-<!-- We provide code for both tasks. The `sample_code_submission` folder includes the files submitted for the Validation phase and Test phase of the challenge. -->
-
-<img width="3511" height="2174" alt="framework-7" src="https://github.com/user-attachments/assets/fdaada16-79ea-44be-a2dc-0b8af6d53f7a" />
+### 📄 Paper
+Our methodology and findings are detailed in:  
+**[Can We Teach AI to Understand Breast Tumour Behaviour? Our MAMA-MIA Challenge Journey](https://link.springer.com/chapter/10.1007/978-3-032-05559-0_25)**
 
 ---
 
+## 🖋️ Citation
+
+If you use this code or refer to our work, please cite it as follows:
+
+```bibtex
+@InProceedings{Awwad2026MAMAMIA,
+author="Awwad, Hadeel and Vilanova, Joan C. and Mart{\'i}, Robert",
+title="Can We Teach AI to Understand Breast Tumour Behaviour? Our MAMA-MIA Challenge Journey",
+booktitle="Artificial Intelligence and Imaging for Diagnostic and Treatment Challenges in Breast Care",
+year="2026",
+publisher="Springer Nature Switzerland",
+address="Cham",
+pages="248--257",
+doi={10.1007/978-3-032-05559-0_25}
+}
+```
+
+<!-- We provide code for both tasks. The `sample_code_submission` folder includes the files submitted for the Validation phase and Test phase of the challenge. -->
+
+<!-- <img width="3511" height="2174" alt="framework-7" src="https://github.com/user-attachments/assets/fdaada16-79ea-44be-a2dc-0b8af6d53f7a" /> -->
+
+---
+<!-- 
 ## Segmentation (Task 1)
 
 ### Preprocessing
@@ -76,4 +99,4 @@ We used **XGBoost** [4] with 5-fold stratified cross-validation to handle class 
 
 [4] Chen, T. and Guestrin, C. (2016). *XGBoost: A Scalable Tree Boosting System*. KDD 2016. https://doi.org/10.1145/2939672.2939785
 
-[5] Isensee, F. et al. (2024). *nnU-Net revisited: A call for rigorous validation in 3D medical image segmentation*. arXiv preprint arXiv:2403.07288
+[5] Isensee, F. et al. (2024). *nnU-Net revisited: A call for rigorous validation in 3D medical image segmentation*. arXiv preprint arXiv:2403.07288 -->
