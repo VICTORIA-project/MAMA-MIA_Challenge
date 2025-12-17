@@ -5,7 +5,7 @@ This repository contains the code for our final submission to the **MAMA-MIA Cha
 1. **Primary Tumor Segmentation** in dynamic contrast-enhanced MRI (DCE-MRI) scans  
 2. **Treatment Response Prediction**, specifically predicting pathologic complete response (pCR) to neoadjuvant chemotherapy from the MRI data  
 
-We provide code for both tasks. The `sample_code_submission` folder includes the files submitted for the Validation phase and Test phase of the challenge.
+<!-- We provide code for both tasks. The `sample_code_submission` folder includes the files submitted for the Validation phase and Test phase of the challenge. -->
 
 <img width="3511" height="2174" alt="framework-7" src="https://github.com/user-attachments/assets/fdaada16-79ea-44be-a2dc-0b8af6d53f7a" />
 
